@@ -93,7 +93,7 @@ Stated plainly because a reviewer will find them faster than a roadmap will:
 
 ## Two things it does that are easy to get wrong
 
-**A request cannot be committed twice.** It tracks what is outstanding *and*
+**A request cannot be committed twice.** It tracks what is outstanding _and_
 what is already working on the book in the taker's name. A counter resting for
 the full size leaves no room to accept a maker's price as well — one requirement
 cannot be committed twice, and both commitments could otherwise fill. A counter
@@ -104,7 +104,7 @@ requirement for as long as it sits there.
 Refused rather than reduced to fit. A taker asking to commit more than remains
 meant something different from one asking for what is left, and quietly filling
 the smaller size hands them a position they did not choose — so the refusal
-carries the size that *would* fit.
+carries the size that _would_ fit.
 
 **The same execution applied twice does nothing the second time.** Fills carry an
 execution id, not just an order id. Order id cannot stand in for it: two genuine
