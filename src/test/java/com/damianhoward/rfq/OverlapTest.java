@@ -37,7 +37,7 @@ class OverlapTest extends NegotiationScenario {
     Quote quote = service.quote(best).orElseThrow();
     var offerLeg = quote.leg(Side.OFFER).orElseThrow();
     book.consume(offerLeg.orderId());
-    service.filled(offerLeg.orderId(), qty(1000), price("4100"), seconds(2));
+    fill(offerLeg.orderId(), qty(1000), price("4100"), seconds(2));
 
     tickTo(seconds(3));
 
@@ -62,7 +62,7 @@ class OverlapTest extends NegotiationScenario {
     events.clear();
 
     book.consume(offerLeg.orderId());
-    service.filled(offerLeg.orderId(), qty(1000), price("4100"), seconds(2));
+    fill(offerLeg.orderId(), qty(1000), price("4100"), seconds(2));
 
     assertTrue(quote.leg(Side.BID).isPresent(), "the bid is the spread the maker came for");
     assertTrue(quote.leg(Side.OFFER).isEmpty());
@@ -83,12 +83,12 @@ class OverlapTest extends NegotiationScenario {
 
     var offerLeg = quote.leg(Side.OFFER).orElseThrow();
     book.consume(offerLeg.orderId());
-    service.filled(offerLeg.orderId(), qty(1000), price("4100"), seconds(2));
+    fill(offerLeg.orderId(), qty(1000), price("4100"), seconds(2));
     assertTrue(quote.isLive());
 
     var bidLeg = quote.leg(Side.BID).orElseThrow();
     book.consume(bidLeg.orderId());
-    service.filled(bidLeg.orderId(), qty(1000), price("3900"), seconds(3));
+    fill(bidLeg.orderId(), qty(1000), price("3900"), seconds(3));
 
     assertFalse(quote.isLive());
     assertEquals(Quote.Terminal.TRADED, quote.terminal().orElseThrow());
@@ -103,7 +103,7 @@ class OverlapTest extends NegotiationScenario {
     var counter = service.counterFor(REQ).orElseThrow();
     events.clear();
 
-    service.filled(counter.orderId(), qty(400), price("4050"), seconds(6));
+    fill(counter.orderId(), qty(400), price("4050"), seconds(6));
 
     NegotiationEvent.TradeOccurred trade =
         events.onlyTo(TAKER, NegotiationEvent.TradeOccurred.class);
@@ -125,7 +125,7 @@ class OverlapTest extends NegotiationScenario {
 
     // OUTSIDER was never solicited and knows nothing of the request. It saw a resting order.
     book.consume(counter.orderId());
-    service.filled(counter.orderId(), qty(1000), price("4050"), seconds(6));
+    fill(counter.orderId(), qty(1000), price("4050"), seconds(6));
 
     events.onlyTo(TAKER, NegotiationEvent.RequestClosed.class);
     assertFalse(service.request(REQ).orElseThrow().isLive(),
@@ -156,7 +156,7 @@ class OverlapTest extends NegotiationScenario {
     takerAsksForAPrice();
     events.clear();
 
-    service.filled(new com.damianhoward.rfq.model.OrderId(9999), qty(50), price("4000"),
+    fill(new com.damianhoward.rfq.model.OrderId(9999), qty(50), price("4000"),
         seconds(2));
 
     events.none(NegotiationEvent.TradeOccurred.class);

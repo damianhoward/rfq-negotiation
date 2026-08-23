@@ -1,6 +1,8 @@
 package com.damianhoward.rfq;
 
 import com.damianhoward.rfq.model.CounterId;
+import com.damianhoward.rfq.model.ExecutionId;
+import com.damianhoward.rfq.model.OrderId;
 import com.damianhoward.rfq.model.Instrument;
 import com.damianhoward.rfq.model.ParticipantId;
 import com.damianhoward.rfq.model.Price;
@@ -47,6 +49,8 @@ abstract class NegotiationScenario {
 
   static final Duration QUOTE_LIFE = Duration.ofSeconds(30);
 
+  private int executions;
+
   FakeOrderBook book;
   RecordingEvents events;
   NegotiationService service;
@@ -67,6 +71,16 @@ abstract class NegotiationScenario {
   /** Moves the clock without polling, for asserting that nothing depends on the sweep. */
   void at(Instant instant) {
     book.clockAt(instant);
+  }
+
+  /** Reports a fill with a fresh execution id, which is the ordinary case. */
+  void fill(OrderId orderId, Quantity amount, Price price, Instant at) {
+    service.filled(nextExecution(), orderId, amount, price, at);
+  }
+
+  /** A distinct execution every time, so no test accidentally relies on the de-duplication. */
+  ExecutionId nextExecution() {
+    return new ExecutionId("exec-" + (++executions));
   }
 
   static Instant seconds(long fromStart) {
@@ -113,7 +127,8 @@ abstract class NegotiationScenario {
 
   /** The taker counters, one-sided, valid to the end of their request. */
   CounterId takerCounters(String id, Side side, String at, long size, Instant now) {
-    return service.counter(
-        new CounterId(id), REQ, side, price(at), qty(size), START.plus(REQUEST_LIFE), now);
+    return service
+        .counter(new CounterId(id), REQ, side, price(at), qty(size), START.plus(REQUEST_LIFE), now)
+        .orElseThrow(() -> new AssertionError("counter " + id + " was refused"));
   }
 }

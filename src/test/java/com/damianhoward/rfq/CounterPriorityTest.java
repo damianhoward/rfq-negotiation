@@ -105,7 +105,7 @@ class CounterPriorityTest extends NegotiationScenario {
     events.clear();
 
     book.consume(counter.orderId());
-    service.filled(counter.orderId(), qty(1000), price("4050"), seconds(6));
+    fill(counter.orderId(), qty(1000), price("4050"), seconds(6));
     tickTo(seconds(30));
 
     events.none(MM1, NegotiationEvent.CounterImproved.class);
