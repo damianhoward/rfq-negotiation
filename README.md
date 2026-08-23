@@ -13,11 +13,11 @@ conversation. This service decides who is told what, and when.
 
 A negotiation has three things in it, and they end independently:
 
-| | Belongs to | Ends when |
-| --- | --- | --- |
-| **Quote request** | the taker | filled, withdrawn, or its clock runs out |
-| **Solicitation** | the system | every maker has answered, or its own longer clock runs out |
-| **Quote** | a maker | both legs are gone — traded, pulled, or expired |
+|                   | Belongs to | Ends when                                                  |
+| ----------------- | ---------- | ---------------------------------------------------------- |
+| **Quote request** | the taker  | filled, withdrawn, or its clock runs out                   |
+| **Solicitation**  | the system | every maker has answered, or its own longer clock runs out |
+| **Quote**         | a maker    | both legs are gone — traded, pulled, or expired            |
 
 A request does not end because a maker stopped quoting, and a maker's price does
 not die because the taker walked away. Liquidity outlives the negotiation that
@@ -36,7 +36,7 @@ crossing, and no way for the two to disagree about what traded.
 
 ### Every quote is two-way
 
-A maker returns a bid *and* an offer. Asking for one side tells the room which
+A maker returns a bid _and_ an offer. Asking for one side tells the room which
 way you are going before you have traded, so the request carries a size and an
 instrument and no direction. The taker reveals direction when they commit, which
 is the moment it stops being information anyone can trade ahead of.
@@ -44,7 +44,7 @@ is the moment it stops being information anyone can trade ahead of.
 ### The best maker hears first
 
 A maker who quoted the best price gets a short head start on the taker's counter
-before the others see it. Priority is *awareness*, not access — the counter is
+before the others see it. Priority is _awareness_, not access — the counter is
 resting in the public book the whole time, so nothing is hidden and no order is
 privileged. What is rationed is who is told to look.
 
@@ -67,7 +67,7 @@ by the thing they are about — request, solicitation, quote, counter, trade —
 each has a direction: inbound events are what a participant asked for, outbound
 events are what the system decided to tell them.
 
-Run the tests to see them: each test asserts *who* was told *what*, so a service
+Run the tests to see them: each test asserts _who_ was told _what_, so a service
 that quietly told nobody would fail even with correct internal state.
 
 ## Running it

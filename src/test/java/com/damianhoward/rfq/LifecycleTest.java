@@ -78,11 +78,14 @@ class LifecycleTest extends NegotiationScenario {
 
     service.decline(REQ, MM1);
     service.decline(REQ, MM2);
-    events.none(TAKER, NegotiationEvent.InterestGone.class);
+    events.none(TAKER, NegotiationEvent.AllMakersDeclined.class);
 
     service.decline(REQ, MM3);
 
-    events.onlyTo(TAKER, NegotiationEvent.InterestGone.class);
+    events.onlyTo(TAKER, NegotiationEvent.AllMakersDeclined.class);
+    events.none(TAKER, NegotiationEvent.InterestGone.class);
+    assertTrue(service.request(REQ).orElseThrow().isLive(),
+        "nobody would quote it, but the taker still wants a price");
   }
 
   @Test

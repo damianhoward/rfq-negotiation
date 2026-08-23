@@ -291,7 +291,8 @@ public final class NegotiationService {
     }
     if (solicitation.declined(maker)) {
       // Nobody is left to wait for, and saying so beats running the clock out on an empty room.
-      events.publish(new NegotiationEvent.InterestGone(request.taker(), requestId));
+      // The request is deliberately left live: a maker who passed now may quote in a minute.
+      events.publish(new NegotiationEvent.AllMakersDeclined(request.taker(), requestId));
     }
   }
 

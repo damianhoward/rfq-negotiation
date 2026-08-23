@@ -131,6 +131,21 @@ public sealed interface NegotiationEvent {
    */
   record InterestGone(ParticipantId audience, RequestId request) implements NegotiationEvent {}
 
+  /**
+   * Every solicited maker declined. Sent to the taker.
+   *
+   * <p>Deliberately not the same event as {@link InterestGone}, which it was until a reviewer
+   * pointed out they are opposites: there, the taker has stopped wanting a price and the makers are
+   * told; here, the taker still wants one and nobody would quote it. Sharing one event made both
+   * audiences infer which had happened from their own identity, which is a fact the sender already
+   * had and threw away.
+   *
+   * <p>The request stays live. The taker can widen, counter into the book, or wait, and a maker who
+   * declined at one moment may quote a minute later.
+   */
+  record AllMakersDeclined(ParticipantId audience, RequestId request)
+      implements NegotiationEvent {}
+
   /** The taker's counter is now top of book on its side. */
   record CounterImproved(
       ParticipantId audience, RequestId request, CounterId counter, Side side, Price price,
