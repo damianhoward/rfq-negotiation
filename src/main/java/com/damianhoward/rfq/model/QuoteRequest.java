@@ -28,6 +28,14 @@ public final class QuoteRequest {
   private final Instrument instrument;
   private final Quantity asked;
   private Quantity outstanding;
+
+  /**
+   * How much of the outstanding is already working on the book in the taker's name.
+   *
+   * <p>Outstanding on its own cannot answer "may this be committed", because an order resting
+   * against this request has filled nothing yet and has still spent the requirement.
+   */
+  private Quantity committed;
   private Instant expiresAt;
   private boolean expiryWarned;
   private Terminal terminal;
@@ -77,6 +85,46 @@ public final class QuoteRequest {
     return Optional.ofNullable(outstanding);
   }
 
+  /** What is working on the book against this request, if anything. */
+  public Optional<Quantity> committed() {
+    return Optional.ofNullable(committed);
+  }
+
+  /** What may still be committed: the outstanding, less what is already working. */
+  public Optional<Quantity> uncommitted() {
+    if (outstanding == null) {
+      return Optional.empty();
+    }
+    return committed == null ? Optional.of(outstanding) : outstanding.minus(committed);
+  }
+
+  /** Whether {@code amount} would fit in what is left uncommitted. */
+  public boolean hasRoomFor(Quantity amount) {
+    return uncommitted().filter(room -> amount.compareTo(room) <= 0).isPresent();
+  }
+
+  /**
+   * Reserves part of the outstanding against an order about to rest in the book.
+   *
+   * @throws IllegalArgumentException if there is not that much room; callers check first and tell
+   *     the taker, so reaching this is a defect rather than a rejected request
+   */
+  public void commit(Quantity amount) {
+    if (!hasRoomFor(amount)) {
+      throw new IllegalArgumentException(
+          "request " + id + " has " + uncommitted().map(Object::toString).orElse("0")
+              + " uncommitted, asked to commit " + amount);
+    }
+    committed = committed == null ? amount : new Quantity(committed.units() + amount.units());
+  }
+
+  /** Gives back a reservation whose order has stopped working. */
+  public void release(Quantity amount) {
+    if (committed != null) {
+      committed = committed.minus(amount).orElse(null);
+    }
+  }
+
   public Instant expiresAt() {
     return expiresAt;
   }
@@ -100,6 +148,8 @@ public final class QuoteRequest {
     if (outstanding == null) {
       throw new IllegalStateException("request " + id + " has nothing outstanding to fill");
     }
+    // A fill turns a reservation into a trade, so it stops standing for size still to come.
+    release(filled);
     outstanding = outstanding.minus(filled).orElse(null);
     if (outstanding == null) {
       terminal = Terminal.CLOSED;

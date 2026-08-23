@@ -169,7 +169,7 @@ class LifecycleTest extends NegotiationScenario {
     makerQuotes("q1", MM1, "3900", "4100");
     events.clear();
 
-    var orderId = service.accept(REQ, Side.BID, price("4100"), SIZE);
+    var orderId = service.accept(REQ, Side.BID, price("4100"), SIZE).orElseThrow();
 
     assertEquals(TimeInForce.FILL_OR_KILL, book.timeInForceOf(orderId).orElseThrow());
     assertFalse(book.isResting(orderId), "an accept that does not trade leaves nothing behind");
@@ -181,10 +181,10 @@ class LifecycleTest extends NegotiationScenario {
   void acceptCreditsTheRequest() {
     takerAsksForAPrice();
     makerQuotes("q1", MM1, "3900", "4100");
-    var orderId = service.accept(REQ, Side.BID, price("4100"), SIZE);
+    var orderId = service.accept(REQ, Side.BID, price("4100"), SIZE).orElseThrow();
     events.clear();
 
-    service.filled(orderId, SIZE, price("4100"), seconds(2));
+    fill(orderId, SIZE, price("4100"), seconds(2));
 
     events.onlyTo(TAKER, NegotiationEvent.TradeOccurred.class);
     events.onlyTo(TAKER, NegotiationEvent.RequestClosed.class);

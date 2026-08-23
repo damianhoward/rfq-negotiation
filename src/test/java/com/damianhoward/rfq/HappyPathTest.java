@@ -104,7 +104,7 @@ class HappyPathTest extends NegotiationScenario {
     events.clear();
 
     book.consume(counter.orderId());
-    service.filled(counter.orderId(), qty(1000), price("4050"), seconds(6));
+    fill(counter.orderId(), qty(1000), price("4050"), seconds(6));
 
     NegotiationEvent.TradeOccurred trade =
         events.onlyTo(TAKER, NegotiationEvent.TradeOccurred.class);
@@ -126,7 +126,7 @@ class HappyPathTest extends NegotiationScenario {
     events.clear();
 
     book.consume(counter.orderId());
-    service.filled(counter.orderId(), qty(1000), price("4050"), seconds(6));
+    fill(counter.orderId(), qty(1000), price("4050"), seconds(6));
 
     events.onlyTo(MM1, NegotiationEvent.DoneAway.class);
     events.onlyTo(MM2, NegotiationEvent.DoneAway.class);

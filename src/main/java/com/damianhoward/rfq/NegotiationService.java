@@ -3,6 +3,7 @@ package com.damianhoward.rfq;
 import com.damianhoward.rfq.event.NegotiationEvent;
 import com.damianhoward.rfq.model.Counter;
 import com.damianhoward.rfq.model.CounterId;
+import com.damianhoward.rfq.model.ExecutionId;
 import com.damianhoward.rfq.model.Instrument;
 import com.damianhoward.rfq.model.OrderId;
 import com.damianhoward.rfq.model.ParticipantId;
@@ -23,6 +24,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -73,6 +75,15 @@ public final class NegotiationService {
   private final Map<OrderId, Resting> restingBy = new HashMap<>();
   private final Map<RequestId, Map<ParticipantId, TopOfBook>> toldSoFar = new HashMap<>();
   private final List<PendingDispatch> pending = new ArrayList<>();
+
+  /**
+   * Executions already applied.
+   *
+   * <p>The transport redelivers, and a fill applied twice books the taker into size they never
+   * asked for. Order id cannot stand in for this: two genuine partial fills of the same amount on
+   * one order look exactly like one fill delivered twice.
+   */
+  private final java.util.Set<ExecutionId> applied = new HashSet<>();
   private final java.util.Set<CounterId> degradedCounters = new java.util.HashSet<>();
 
   /** What a resting order belongs to, so a fill can be attributed without asking the book. */
@@ -136,7 +147,7 @@ public final class NegotiationService {
    * counter from the same taker is superseded: its order comes off, because a taker showing two
    * prices at once on the same request is offering something they did not mean to.
    */
-  public CounterId counter(
+  public Optional<CounterId> counter(
       CounterId id,
       RequestId requestId,
       Side side,
@@ -150,8 +161,16 @@ public final class NegotiationService {
     if (previous != null && previous.isLive()) {
       book.cancel(previous.orderId());
       restingBy.remove(previous.orderId());
+      previous.remaining().ifPresent(request::release);
       previous.superseded();
     }
+
+    // Checked after the supersede, because the size the old counter was holding is the taker's own
+    // and is exactly what they are re-committing.
+    if (!request.hasRoomFor(size)) {
+      return refuse(request, size, "counter");
+    }
+    request.commit(size);
 
     OrderId orderId =
         book.place(
@@ -168,7 +187,28 @@ public final class NegotiationService {
     restingBy.put(orderId, new Resting.OfCounter(id, requestId));
 
     disseminate(counter, now);
-    return id;
+    return Optional.of(id);
+  }
+
+  /**
+   * Tells the taker their commitment does not fit, and how much would.
+   *
+   * <p>Available is the number they can act on. Refusing without it leaves them to guess, and the
+   * guess is a second rejected message.
+   */
+  private <T> Optional<T> refuse(QuoteRequest request, Quantity wanted, String what) {
+    Quantity available = request.uncommitted().orElse(null);
+    events.publish(
+        new NegotiationEvent.CommitmentRejected(
+            request.taker(),
+            request.id(),
+            wanted,
+            available == null ? Quantity.of(1) : available,
+            available == null
+                ? "the request has nothing left outstanding"
+                : "the request has " + available + " uncommitted, and this " + what + " wants "
+                    + wanted));
+    return Optional.empty();
   }
 
   /**
@@ -184,10 +224,20 @@ public final class NegotiationService {
    * price has already gone, the taker learns it from the degradation they would have received
    * anyway, and no rejection path is needed here at all.
    *
-   * @return the order id, so the caller can attribute the fill if one comes
+   * <p>Checked against what is uncommitted, but reserving nothing. That asymmetry with the
+   * counter is the point: a counter rests, so it spends the requirement for as long as it sits
+   * there, while an accept is decided in the instant it is placed and either has the size or does
+   * not. What the check prevents is a taker holding a counter for the whole requirement and then
+   * accepting a maker's price for the whole requirement, which is one need and two fills.
+   *
+   * @return the order id, so the caller can attribute the fill if one comes, or empty when the
+   *     request had no room for it
    */
-  public OrderId accept(RequestId requestId, Side side, Price limit, Quantity size) {
+  public Optional<OrderId> accept(RequestId requestId, Side side, Price limit, Quantity size) {
     QuoteRequest request = liveRequest(requestId);
+    if (!request.hasRoomFor(size)) {
+      return refuse(request, size, "accept");
+    }
     OrderId orderId =
         book.place(
             request.instrument(),
@@ -198,7 +248,7 @@ public final class NegotiationService {
             TimeInForce.FILL_OR_KILL,
             request.expiresAt());
     restingBy.put(orderId, new Resting.OfTakerOrder(requestId));
-    return orderId;
+    return Optional.of(orderId);
   }
 
   /**
@@ -339,7 +389,11 @@ public final class NegotiationService {
    * the time a fill is reported the order may be gone from the book, and the party who has to be
    * told cannot be recovered from it.
    */
-  public void filled(OrderId orderId, Quantity amount, Price price, Instant now) {
+  public void filled(
+      ExecutionId execution, OrderId orderId, Quantity amount, Price price, Instant now) {
+    if (!applied.add(execution)) {
+      return; // Already counted. The transport redelivered, which it is entitled to do.
+    }
     Resting resting = restingBy.get(orderId);
     if (resting == null) {
       return; // Not ours. Someone else's liquidity traded, which is the book working.
@@ -451,6 +505,7 @@ public final class NegotiationService {
         .filter(counter -> counter.isLive() && counter.hasExpiredAt(now))
         .forEach(counter -> {
           restingBy.remove(counter.orderId());
+          releaseReservation(counter.request(), counter);
           counter.expired();
         });
   }
@@ -613,7 +668,16 @@ public final class NegotiationService {
     if (counter != null && counter.isLive()) {
       book.cancel(counter.orderId());
       restingBy.remove(counter.orderId());
+      releaseReservation(requestId, counter);
       counter.cancelled();
+    }
+  }
+
+  /** Hands the request back the size a counter was holding, now that it has stopped working. */
+  private void releaseReservation(RequestId requestId, Counter counter) {
+    QuoteRequest request = requests.get(requestId);
+    if (request != null) {
+      counter.remaining().ifPresent(request::release);
     }
   }
 

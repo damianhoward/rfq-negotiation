@@ -146,6 +146,25 @@ public sealed interface NegotiationEvent {
   record AllMakersDeclined(ParticipantId audience, RequestId request)
       implements NegotiationEvent {}
 
+  /**
+   * A commitment was refused because the request has no room left for it.
+   *
+   * <p>What is available to commit is the outstanding less whatever is already working on the book
+   * in the taker's name. A taker holding a counter for the whole size and then accepting a maker's
+   * price for the whole size has asked for one lot and offered to buy two, and both can fill.
+   *
+   * <p>Refused rather than reduced to fit: a taker asking to commit more than remains meant
+   * something different from one asking for what is left, and quietly filling the smaller size
+   * hands them a position they did not choose.
+   */
+  record CommitmentRejected(
+      ParticipantId audience,
+      RequestId request,
+      Quantity wanted,
+      Quantity available,
+      String reason)
+      implements NegotiationEvent {}
+
   /** The taker's counter is now top of book on its side. */
   record CounterImproved(
       ParticipantId audience, RequestId request, CounterId counter, Side side, Price price,
