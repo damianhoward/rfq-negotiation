@@ -84,18 +84,34 @@ fake book and a recording sink.
 
 Stated plainly because a reviewer will find them faster than a roadmap will:
 
-- **Quantity reservation.** A live counter and a concurrent accept can each
-  commit the full outstanding, so a request can overfill. The fix is for the
-  request to track what is already working on the book, not only what is
-  outstanding.
-- **Execution identity.** Fills are applied by order id with no execution id, so
-  a redelivered fill would be counted twice. The transport will redeliver.
 - **Last look.** Designed, not implemented: where the setting lives, what a
   rejection does to the held quote, and how firm and last-look prices are told
   apart by the taker.
 - **Credit and funding.** The model assumes pre-funded wallets checked before a
   commitment rests. Nothing checks them yet.
 - **Transport.** No process entry point: this is the domain and its ports.
+
+## Two things it does that are easy to get wrong
+
+**A request cannot be committed twice.** It tracks what is outstanding _and_
+what is already working on the book in the taker's name. A counter resting for
+the full size leaves no room to accept a maker's price as well — one requirement
+cannot be committed twice, and both commitments could otherwise fill. A counter
+reserves for as long as it rests; an accept is checked but reserves nothing,
+because it is decided in the instant it is placed while a counter spends the
+requirement for as long as it sits there.
+
+Refused rather than reduced to fit. A taker asking to commit more than remains
+meant something different from one asking for what is left, and quietly filling
+the smaller size hands them a position they did not choose — so the refusal
+carries the size that _would_ fit.
+
+**The same execution applied twice does nothing the second time.** Fills carry an
+execution id, not just an order id. Order id cannot stand in for it: two genuine
+partial fills of 400 on one order are indistinguishable from one fill of 400
+delivered twice, and the transport is entitled to redeliver. Both cases have a
+test, and they assert opposite outcomes — the second is the one that fails
+against every shortcut version of the fix.
 
 ## Design
 
