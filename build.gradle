@@ -1,0 +1,14 @@
+// The quote-driven negotiation layer: solicitation, top-of-book observation, and the events that
+// tell each side what changed. It owns no matching and no liquidity — orders live in an order book
+// reached through the ports in com.damianhoward.rfq.port, so this module is pure domain and its
+// tests need nothing running.
+plugins {
+    id 'com.damianhoward.java-conventions' version '0.5.2'
+}
+
+group = 'com.damianhoward'
+version = '0.1.0'
+
+// Nothing is excluded. There is no process entry point yet — this is the domain and its ports, so
+// every line here is behaviour a test can reach, and a gap in the report is a gap in the tests.
+coverageExcludes = []

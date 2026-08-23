@@ -1,0 +1,30 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+        maven { url = uri('https://jitpack.io') }
+    }
+    resolutionStrategy {
+        eachPlugin {
+            if (requested.id.namespace == 'com.damianhoward') {
+                useModule("com.github.damianhoward.build-conventions:plugins:${requested.version}")
+            }
+        }
+    }
+}
+
+// The shared version catalog: versions two or more repos genuinely share (see the
+// build-conventions repo); application-specific dependencies stay in the module build files.
+dependencyResolutionManagement {
+    repositories {
+        maven { url = uri('https://jitpack.io') }
+    }
+    versionCatalogs {
+        create('deps') {
+            from 'com.github.damianhoward.build-conventions:catalog:0.5.2'
+        }
+    }
+}
+
+rootProject.name = 'rfq-negotiation'
+
