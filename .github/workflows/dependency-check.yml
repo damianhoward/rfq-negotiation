@@ -5,13 +5,13 @@ name: Dependency check
 # already gates. Monday and Thursday rather than weekly: GitHub evicts a cache unused for seven
 # days, so a seven-day schedule left the NVD copy expiring exactly as the next run needed it and
 # every repository re-downloaded the whole feed from cold. The time is this repository's slot in
-# the estate-wide stagger recorded in workspace-config document 07 — thirteen repositories share
+# the estate-wide stagger recorded in workspace-config document 07 — fourteen repositories share
 # one NVD API key, and starting them together throttles every cold scan. Slots sit twenty minutes
 # apart because GitHub delays scheduled runs by minutes under load, which a tighter spread would
 # not survive.
 on:
   schedule:
-    - cron: "23 7 * * 1,4"
+    - cron: "23 10 * * 1,4"
   workflow_dispatch:
 
 jobs:
