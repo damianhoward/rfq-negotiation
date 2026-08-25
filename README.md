@@ -1,5 +1,9 @@
 # rfq-negotiation
 
+[![CI](https://github.com/damianhoward/rfq-negotiation/actions/workflows/ci.yml/badge.svg)](https://github.com/damianhoward/rfq-negotiation/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/damianhoward/rfq-negotiation/actions/workflows/codeql.yml/badge.svg)](https://github.com/damianhoward/rfq-negotiation/actions/workflows/codeql.yml)
+[![codecov](https://codecov.io/gh/damianhoward/rfq-negotiation/graph/badge.svg)](https://codecov.io/gh/damianhoward/rfq-negotiation)
+
 Quote-driven negotiation over a central limit order book: a taker asks several
 market makers for a price, the makers answer, and either side may improve on the
 other until someone trades or the clock runs out.
