@@ -1,0 +1,20 @@
+version: 2
+updates:
+  - package-ecosystem: "gradle"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    ignore:
+      # settings.gradle maps these plugin ids to com.github.damianhoward.build-conventions:plugins
+      # through an eachPlugin resolutionStrategy. Dependabot does not run that mapping, so it
+      # asks JitPack for the plugin-marker coordinate com/damianhoward/... which does not
+      # exist there; JitPack answers 401 for an unknown group and Dependabot reports
+      # private_source_authentication_failure. No credential fixes a coordinate that is not
+      # published — platform bumps are a deliberate estate-wide sweep. Matched by prefix so
+      # that a repository applying a different convention plugin cannot silently miss the entry.
+      - dependency-name: "com.damianhoward.*"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
