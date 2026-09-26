@@ -3,7 +3,7 @@
 // reached through the ports in com.damianhoward.rfq.port, so this module is pure domain and its
 // tests need nothing running.
 plugins {
-    id 'com.damianhoward.java-conventions' version '0.5.2'
+    id 'com.damianhoward.java-conventions' version '0.5.3'
 }
 
 group = 'com.damianhoward'
