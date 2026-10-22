@@ -16,5 +16,5 @@ on:
 
 jobs:
   scan:
-    uses: damianhoward/.github/.github/workflows/dependency-check.yml@main
+    uses: damianhoward/.github/.github/workflows/dependency-check.yml@prove-action-bumps
     secrets: inherit
